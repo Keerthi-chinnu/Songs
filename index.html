@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Songs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700;800&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-deep:       #0a0a0f;
+      --bg-card:       #111118;
+      --bg-input:      #1a1a24;
+      --bg-hover:      #1e1e2e;
+      --accent-red:    #fc3c44;
+      --accent-pink:   #ff6b8a;
+      --accent-green:  #1db954;
+      --accent-purple: #9b59fc;
+      --text-primary:  #f0f0f8;
+      --text-secondary:#9090b0;
+      --text-muted:    #50506a;
+      --border:        rgba(255,255,255,0.07);
+      --glow-red:      rgba(252,60,68,0.22);
+      --glow-green:    rgba(29,185,84,0.18);
+      --radius:        14px;
+      --transition:    0.2s cubic-bezier(.4,0,.2,1);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Figtree', sans-serif;
+      background: var(--bg-deep);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Ambient glow bg ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background:
+        radial-gradient(ellipse 60% 40% at 15% 10%, rgba(252,60,68,0.10) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 35% at 85% 80%, rgba(29,185,84,0.08) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 30% at 55% 50%, rgba(155,89,252,0.06) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .app {
+      position: relative; z-index: 1;
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 40px 20px 80px;
+    }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 40px;
+    }
+
+    .logo-icon {
+      width: 46px; height: 46px;
+      background: linear-gradient(135deg, var(--accent-red) 0%, var(--accent-purple) 100%);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 20px var(--glow-red);
+      flex-shrink: 0;
+    }
+
+    .logo-icon svg { width: 24px; height: 24px; fill: #fff; }
+
+    .header-titles h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.65rem;
+      letter-spacing: -0.02em;
+      line-height: 1;
+      background: linear-gradient(100deg, #fff 30%, var(--accent-pink) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .header-titles p {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-top: 3px;
+    }
+
+    .note-count-badge {
+      margin-left: auto;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 5px 14px;
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      font-weight: 600;
+      letter-spacing: 0.03em;
+    }
+
+    .note-count-badge span {
+      color: var(--accent-green);
+      font-size: 0.9rem;
+    }
+
+    /* ── Search bar ── */
+    .search-wrap {
+      position: relative;
+      margin-bottom: 28px;
+    }
+
+    .search-wrap svg {
+      position: absolute;
+      left: 16px; top: 50%; transform: translateY(-50%);
+      width: 18px; height: 18px;
+      fill: var(--text-muted);
+      pointer-events: none;
+      transition: fill var(--transition);
+    }
+
+    #searchInput {
+      width: 100%;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 14px 14px 46px;
+      font-family: 'Figtree', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+
+    #searchInput::placeholder { color: var(--text-muted); }
+
+    #searchInput:focus {
+      border-color: rgba(252,60,68,0.5);
+      box-shadow: 0 0 0 3px rgba(252,60,68,0.10);
+    }
+
+    #searchInput:focus ~ svg,
+    .search-wrap:focus-within svg { fill: var(--accent-red); }
+
+    .search-live-hint {
+      position: absolute;
+      right: 14px; top: 50%; transform: translateY(-50%);
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity var(--transition);
+    }
+
+    #searchInput:not(:placeholder-shown) ~ .search-live-hint { opacity: 1; }
+
+    /* ── Add note panel ── */
+    .add-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 32px;
+      transition: border-color var(--transition);
+    }
+
+    .add-panel:focus-within {
+      border-color: rgba(252,60,68,0.35);
+      box-shadow: 0 0 0 3px rgba(252,60,68,0.06);
+    }
+
+    .add-panel label {
+      display: block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 7px;
+    }
+
+    .add-panel input[type="text"],
+    .add-panel textarea {
+      width: 100%;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-family: 'Figtree', sans-serif;
+      color: var(--text-primary);
+      outline: none;
+      transition: border-color var(--transition);
+    }
+
+    .add-panel input[type="text"]:focus,
+    .add-panel textarea:focus {
+      border-color: rgba(255,255,255,0.18);
+    }
+
+    #titleInput {
+      padding: 10px 14px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      margin-bottom: 14px;
+    }
+
+    #titleInput::placeholder { color: var(--text-muted); font-weight: 400; }
+
+    #noteInput {
+      padding: 10px 14px;
+      font-size: 0.88rem;
+      line-height: 1.65;
+      resize: vertical;
+      min-height: 90px;
+    }
+
+    #noteInput::placeholder { color: var(--text-muted); }
+
+    .add-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 14px;
+      gap: 10px;
+    }
+
+    .char-hint {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    .btn-add {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      background: linear-gradient(135deg, var(--accent-red) 0%, #e0334a 100%);
+      color: #fff;
+      border: none;
+      border-radius: 999px;
+      padding: 9px 22px;
+      font-family: 'Figtree', sans-serif;
+      font-size: 0.84rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(252,60,68,0.35);
+      transition: transform var(--transition), box-shadow var(--transition), opacity var(--transition);
+    }
+
+    .btn-add:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(252,60,68,0.45); }
+    .btn-add:active { transform: translateY(0); }
+    .btn-add:disabled { opacity: 0.4; cursor: default; transform: none; box-shadow: none; }
+    .btn-add svg { width: 14px; height: 14px; fill: #fff; }
+
+    /* ── Section label ── */
+    .section-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+    }
+
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── Notes list ── */
+    #notesList { display: flex; flex-direction: column; gap: 10px; }
+
+    .note-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 4px 12px;
+      cursor: default;
+      animation: slideIn 0.25s cubic-bezier(.4,0,.2,1) both;
+      transition: border-color var(--transition), transform var(--transition), box-shadow var(--transition);
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .note-card:hover {
+      border-color: rgba(255,255,255,0.13);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 24px rgba(0,0,0,0.35);
+    }
+
+    .note-title {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: -0.01em;
+    }
+
+    .note-body {
+      font-size: 0.84rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin-top: 5px;
+      grid-column: 1;
+    }
+
+    .note-meta {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .note-meta .dot {
+      width: 3px; height: 3px;
+      background: var(--text-muted);
+      border-radius: 50%;
+    }
+
+    .note-actions {
+      grid-row: 1 / 4;
+      grid-column: 2;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      align-items: flex-end;
+      justify-content: flex-start;
+      padding-top: 2px;
+    }
+
+    .btn-icon {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      width: 30px; height: 30px;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      transition: background var(--transition), opacity var(--transition);
+    }
+
+    .btn-icon:hover { background: var(--bg-hover); }
+    .btn-icon svg { width: 15px; height: 15px; }
+
+    .btn-delete svg { fill: var(--text-muted); }
+    .btn-delete:hover svg { fill: var(--accent-red); }
+
+    /* ── Highlight match ── */
+    .highlight {
+      background: rgba(252,60,68,0.22);
+      color: var(--accent-pink);
+      border-radius: 3px;
+      padding: 0 2px;
+      font-weight: 700;
+    }
+
+    /* ── Empty state ── */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+    }
+
+    .empty-state .empty-icon {
+      width: 56px; height: 56px;
+      margin: 0 auto 16px;
+      background: var(--bg-input);
+      border-radius: 16px;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .empty-state .empty-icon svg { width: 28px; height: 28px; fill: var(--text-muted); }
+    .empty-state h3 { font-size: 1rem; font-weight: 600; color: var(--text-secondary); }
+    .empty-state p  { font-size: 0.82rem; color: var(--text-muted); margin-top: 5px; }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed;
+      bottom: 28px; left: 50%; transform: translateX(-50%) translateY(20px);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 10px 22px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s, transform 0.2s;
+      z-index: 999;
+      white-space: nowrap;
+    }
+
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--bg-hover); border-radius: 10px; }
+
+    /* ── Responsive ── */
+    @media (max-width: 500px) {
+      .app { padding: 24px 14px 60px; }
+      .header h1 { font-size: 1.35rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 100 18A9 9 0 0012 3zM8.5 8.5h7a.5.5 0 010 1H13v6a1 1 0 01-2 0V9.5H8.5a.5.5 0 010-1z"/></svg>
+    </div>
+    <div class="header-titles">
+      <h1>Songs</h1>
+      <p>Your personal track of Songs</p>
+    </div>
+    <div class="note-count-badge"><span id="countDisplay">0</span> notes</div>
+  </div>
+
+  <!-- Search -->
+  <div class="search-wrap">
+    <svg viewBox="0 0 24 24"><path d="M10.5 3a7.5 7.5 0 105.196 12.906l3.7 3.7a1 1 0 001.414-1.414l-3.7-3.7A7.5 7.5 0 0010.5 3zm-5.5 7.5a5.5 5.5 0 1111 0 5.5 5.5 0 01-11 0z"/></svg>
+    <input type="text" id="searchInput" placeholder="Search by title…" autocomplete="off" spellcheck="false"/>
+    <span class="search-live-hint">live</span>
+  </div>
+
+  <!-- Add note -->
+  <div class="add-panel">
+    <label for="titleInput">Title</label>
+    <input type="text" id="titleInput" placeholder="Give your note a title…" maxlength="80" autocomplete="off"/>
+
+    <label for="noteInput">Note</label>
+    <textarea id="noteInput" placeholder="Write your lines here…" maxlength="2000"></textarea>
+
+    <div class="add-row">
+      <span class="char-hint" id="charHint">0 / 2000</span>
+      <button class="btn-add" id="addBtn" disabled>
+        <svg viewBox="0 0 24 24"><path d="M12 4a1 1 0 011 1v6h6a1 1 0 010 2h-6v6a1 1 0 01-2 0v-6H5a1 1 0 010-2h6V5a1 1 0 011-1z"/></svg>
+        Save Note
+      </button>
+    </div>
+  </div>
+
+  <!-- Notes list -->
+  <div class="section-label" id="sectionLabel">All Notes</div>
+  <div id="notesList"></div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+  /* ── State ── */
+  const STORAGE_KEY = 'notevault_notes';
+  let notes = [];
+  let query  = '';
+
+  /* ── Load ── */
+  function load() {
+    try { notes = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+    catch { notes = []; }
+  }
+
+  function save() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+  }
+
+  /* ── Helpers ── */
+  function escapeHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function highlightMatch(text, q) {
+    if (!q) return escapeHtml(text);
+    const escaped = escapeHtml(text);
+    const re = new RegExp(`(${escapeHtml(q).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi');
+    return escaped.replace(re, '<span class="highlight">$1</span>');
+  }
+
+  function formatDate(iso) {
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })
+         + ' · '
+         + d.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  /* ── Render ── */
+  function render() {
+    const list  = document.getElementById('notesList');
+    const label = document.getElementById('sectionLabel');
+    const countEl = document.getElementById('countDisplay');
+
+    const q = query.trim().toLowerCase();
+    const filtered = q
+      ? notes.filter(n => n.title.toLowerCase().includes(q) || n.body.toLowerCase().includes(q))
+      : [...notes];
+
+    countEl.textContent = notes.length;
+
+    if (q) {
+      label.textContent = filtered.length
+        ? `${filtered.length} result${filtered.length !== 1 ? 's' : ''} for "${query}"`
+        : `No results for "${query}"`;
+    } else {
+      label.textContent = notes.length
+        ? `All Notes — ${notes.length}`
+        : 'All Notes';
+    }
+
+    if (!filtered.length) {
+      list.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">
+            <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+          </div>
+          <h3>${q ? 'No matching notes' : 'No notes yet'}</h3>
+          <p>${q ? 'Try a different search term' : 'Add your first note above'}</p>
+        </div>`;
+      return;
+    }
+
+    list.innerHTML = filtered.map(n => {
+      const titleH = highlightMatch(n.title, q);
+      const bodyH  = highlightMatch(n.body, q);
+      return `
+      <div class="note-card" data-id="${n.id}">
+        <div class="note-title">${titleH}</div>
+        <div class="note-actions">
+          <button class="btn-icon btn-delete" onclick="deleteNote('${n.id}')" title="Delete">
+            <svg viewBox="0 0 24 24"><path d="M9 3h6a1 1 0 011 1v1h4a1 1 0 010 2h-1v13a2 2 0 01-2 2H7a2 2 0 01-2-2V7H4a1 1 0 010-2h4V4a1 1 0 011-1zm0 4v12h2V7H9zm4 0v12h2V7h-2zM8 5h8V4H8v1z"/></svg>
+          </button>
+        </div>
+        <div class="note-body">${bodyH}</div>
+        <div class="note-meta">
+          <svg style="width:11px;height:11px;fill:var(--text-muted)" viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2zm1 11H8a1 1 0 010-2h4V7a1 1 0 012 0v5a1 1 0 01-1 1z"/></svg>
+          ${formatDate(n.createdAt)}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  /* ── Actions ── */
+  function addNote() {
+    const title = document.getElementById('titleInput').value.trim();
+    const body  = document.getElementById('noteInput').value.trim();
+    if (!title || !body) return;
+
+    notes.unshift({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+      title,
+      body,
+      createdAt: new Date().toISOString()
+    });
+
+    save();
+    render();
+
+    document.getElementById('titleInput').value = '';
+    document.getElementById('noteInput').value  = '';
+    document.getElementById('charHint').textContent = '0 / 2000';
+    document.getElementById('addBtn').disabled = true;
+    showToast('✓  Note saved');
+  }
+
+  function deleteNote(id) {
+    notes = notes.filter(n => n.id !== id);
+    save();
+    render();
+    showToast('Note removed');
+  }
+
+  /* ── Event listeners ── */
+  document.getElementById('searchInput').addEventListener('input', e => {
+    query = e.target.value;
+    render();
+  });
+
+  document.getElementById('noteInput').addEventListener('input', function() {
+    document.getElementById('charHint').textContent = `${this.value.length} / 2000`;
+    updateBtn();
+  });
+
+  document.getElementById('titleInput').addEventListener('input', updateBtn);
+
+  document.getElementById('addBtn').addEventListener('click', addNote);
+
+  /* Allow Ctrl+Enter to save */
+  document.getElementById('noteInput').addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') addNote();
+  });
+
+  function updateBtn() {
+    const t = document.getElementById('titleInput').value.trim();
+    const b = document.getElementById('noteInput').value.trim();
+    document.getElementById('addBtn').disabled = !(t && b);
+  }
+
+  /* ── Init ── */
+  load();
+  render();
+</script>
+</body>
+</html>
